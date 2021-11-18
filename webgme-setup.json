@@ -1,4 +1,12 @@
 {
-  "components": {},
-  "dependencies": {}
+  "components": {
+    "seeds": {
+      "RailroadNetwork": {
+        "src": "src/seeds/RailroadNetwork"
+      }
+    }
+  },
+  "dependencies": {
+    "seeds": {}
+  }
 }
