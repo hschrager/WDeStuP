@@ -4,9 +4,26 @@
       "RailroadNetwork": {
         "src": "src/seeds/RailroadNetwork"
       }
-    }
+    },
+    "plugins": {
+      "MyPluginName": {
+        "src": "src/plugins/MyPluginName",
+        "test": "test/plugins/MyPluginName"
+      }
+    },
+    "addons": {},
+    "decorators": {},
+    "layouts": {},
+    "routers": {},
+    "visualizers": {}
   },
   "dependencies": {
-    "seeds": {}
+    "seeds": {},
+    "plugins": {},
+    "addons": {},
+    "decorators": {},
+    "layouts": {},
+    "routers": {},
+    "visualizers": {}
   }
 }
