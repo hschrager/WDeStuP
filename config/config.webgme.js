@@ -10,6 +10,7 @@ var config = require('webgme/config/config.default'),
 config.plugin.basePaths.push(__dirname + '/../src/plugins');
 config.seedProjects.basePaths.push(__dirname + '/../src/seeds/RailroadNetwork');
 config.seedProjects.basePaths.push(__dirname + '/../src/seeds/PetriNets');
+config.seedProjects.basePaths.push(__dirname + '/../src/seeds/PetriNets2');
 
 
 

@@ -6,6 +6,9 @@
       },
       "PetriNets": {
         "src": "src/seeds/PetriNets"
+      },
+      "PetriNets2": {
+        "src": "src/seeds/PetriNets2"
       }
     },
     "plugins": {

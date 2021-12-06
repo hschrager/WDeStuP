@@ -43,8 +43,8 @@ define(['jointjs', 'css!./styles/PetriNetWidget.css'], function (joint) {
             const currentElement = elementView.model;
             // console.log(currentElement);
             if (self._webgmePetriNet) {
-                // console.log(self._webgmeSM.id2state[currentElement.id]);
-                self._setCurrentState(self._webgmePetriNet.id2state[currentElement.id]);
+                // console.log(self._webgmeSM.id2node[currentElement.id]);
+                self._setCurrentState(self._webgmePetriNet.id2node[currentElement.id]);
             }
         });
 
@@ -64,20 +64,20 @@ define(['jointjs', 'css!./styles/PetriNetWidget.css'], function (joint) {
         self._webgmePetriNet.current = self._webgmePetriNet.init;
         self._petriNet.clear();
         const pn = self._webgmePetriNet;
-        pn.id2state = {}; // this dictionary will connect the on-screen id to the state id
-        // first add the places and transitions
-        Object.keys(pn.states).forEach(placeId => {
+        pn.id2node = {}; // this dictionary will connect the on-screen id to the state id
+        // first add the places and transitions -- nodes
+        Object.keys(pn.states).forEach(nodeId => {
             let vertex = null;
-            if (pn.init === placeId) { //place
+            if (pn.init === nodeId) { //place
                 vertex = new joint.shapes.standard.Circle({
-                    position: pn.places[placeId].position,
+                    position: pn.nodes[nodeId].position,
                     size: { width: 20, height: 20 },
                     attrs: {
                         body: {
                             fill: '#333333',
                             cursor: 'pointer'
                         },
-                        markings: pn.places[placeId].markings,
+                        markings: pn.nodes[nodeId].markings,
                     }
                 });
             } else { //transition
@@ -92,18 +92,18 @@ define(['jointjs', 'css!./styles/PetriNetWidget.css'], function (joint) {
                 });
             }
             vertex.addTo(self._petriNet);
-            pn.places[placeId].joint = vertex;
-            pn.id2state[vertex.id] = placeId;
+            pn.nodes[nodeId].joint = vertex;
+            pn.id2node[vertex.id] = nodeId;
         });
 
         // then create the links
-        Object.keys(pn.states).forEach(stateId => {
-            const state = pn.states[stateId];
+        Object.keys(pn.nodes).forEach(nodeId => {
+            const state = pn.nodes[nodeId];
             Object.keys(state.next).forEach(event => {
                 state.jointNext = state.jointNext || {};
                 const link = new joint.shapes.standard.Link({
                     source: {id: state.joint.id},
-                    target: {id: pn.states[state.next[event]].joint.id},
+                    target: {id: pn.nodes[state.next[event]].joint.id},
                     attrs: {
                         line: {
                             strokeWidth: 2
@@ -145,7 +145,7 @@ define(['jointjs', 'css!./styles/PetriNetWidget.css'], function (joint) {
 
     PetriNetWidget.prototype.fireEvent = function (event) {
         const self = this;
-        const current = self._webgmePetriNet.states[self._webgmePetriNet.current];
+        const current = self._webgmePetriNet.nodes[self._webgmePetriNet.current];
         const link = current.jointNext[event];
         const linkView = link.findView(self._jointPaper);
         linkView.sendToken(joint.V('circle', { r: 10, fill: 'black' }), {duration:500}, function() {
@@ -161,11 +161,11 @@ define(['jointjs', 'css!./styles/PetriNetWidget.css'], function (joint) {
 
     PetriNetWidgetWidget.prototype._decoratePetriNet = function() {
         const pn = this._webgmePetriNet;
-        Object.keys(pn.states).forEach(stateId => {
-            pn.states[stateId].joint.attr('body/stroke', '#333333');
+        Object.keys(pn.nodes).forEach(nodeId => {
+            pn.nodes[nodeId].joint.attr('body/stroke', '#333333');
         });
-        pn.states[pn.current].joint.attr('body/stroke', 'blue');
-        pn.setFireableEvents(Object.keys(pn.states[pn.current].next));
+        pn.nodes[pn.current].joint.attr('body/stroke', 'blue');
+        pn.setFireableEvents(Object.keys(pn.nodes[pn.current].next));
     };
 
     PetriNetWidget.prototype._setCurrentState = function(newCurrent) {
