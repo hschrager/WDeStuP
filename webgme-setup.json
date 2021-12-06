@@ -3,6 +3,9 @@
     "seeds": {
       "RailroadNetwork": {
         "src": "src/seeds/RailroadNetwork"
+      },
+      "PetriNets": {
+        "src": "src/seeds/PetriNets"
       }
     },
     "plugins": {
