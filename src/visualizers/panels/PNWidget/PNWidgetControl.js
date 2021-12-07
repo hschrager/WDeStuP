@@ -151,6 +151,90 @@ define([
         }
     };
 
+    /* * * * * * * * PetriNet manipulation functions * * * * * * * */
+    // this is where the petri net structure is built
+    // traverse network and build up data structure being used in the widget 
+    PNWidgetControl.prototype._initPetriNet = function () { 
+        const self = this;
+        //just for the ease of use, lets create a META dictionary
+        const rawMETA = self._client.getAllMetaNodes();
+        const META = {};
+        rawMETA.forEach(node => {
+            META[node.getAttribute('name')] = node.getId(); //we just need the id...
+        });
+        //now we collect all data we need for network visualization
+        //we need our nodes (names, position, type), need the set of next state (with event names)
+        const pnNode = self._client.getNode(self._currentNodeId);
+        const elementIds = pnNode.getChildrenIds();
+        const pn = {init: null, places:{}, transitions:{}};
+        elementIds.forEach(elementId => {
+            const node = self._client.getNode(elementId);
+            // the simple way of checking type
+            if (node.isTypeOf(META['Place'])) {
+                //right now we only interested in places...
+                const place = {name: node.getAttribute('name'), next:{}, markings: node.getAttribute('marking')};
+                // one way to check meta-type in the client context - though it does not check for generalization types like State
+                if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
+                    pn.init = elementId;
+                }
+
+                // this is in no way optimal, but shows clearly what we are looking for when we collect the data
+                elementIds.forEach(nextId => {
+                    const nextNode = self._client.getNode(nextId);
+                    if(nextNode.isTypeOf(META['Transition']) && nextNode.getPointerId('src') === elementId) {
+                        place.next[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    }
+                });
+                pn.nodes[elementId] = place;
+            } else if (node.isTypeOf(META['Transition'])) {
+                //right now we only interested in transitions...
+                const transition = {name: node.getAttribute('name'), next:{}};
+                // one way to check meta-type in the client context - though it does not check for generalization types like State
+                if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
+                    pn.init = elementId;
+                }
+                // this is in no way optimal, but shows clearly what we are looking for when we collect the data
+                elementIds.forEach(nextId => {
+                    const nextNode = self._client.getNode(nextId);
+                    if(nextNode.isTypeOf(META['Place']) && nextNode.getPointerId('src') === elementId) {
+                        transition.next[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    }
+                });
+            }
+        });
+        pn.setFireableEvents = this.setFireableEvents;
+
+        self._widget.initMachine(pn);
+    };
+
+    PNWidgetControl.prototype.clearPN = function () {
+        const self = this;
+        self._networkRootLoaded = false;
+        self._widget.destroyPetriNet();
+    };
+
+    PNWidgetControl.prototype.setFireableEvents = function (events) {
+        this._fireableEvents = events;
+        if (events && events.length > 1) {
+            // we need to fill the dropdow button with options
+            this.$btnEventSelector.clear();
+            events.forEach(event => {
+                this.$btnEventSelector.addButton({
+                    text: event,
+                    title: 'fire event: '+ event,
+                    data: {event: event},
+                    clickFn: data => {
+                        this._widget.fireEvent(data.event);
+                    }
+                });
+            });
+        } else if (events && events.length === 0) {
+            this._fireableEvents = null;
+        }
+
+        this._displayToolbarItems();
+    };
+
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     PNWidgetControl.prototype.destroy = function () {
         this._detachClientEventListeners();

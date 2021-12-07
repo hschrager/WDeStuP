@@ -43,49 +43,212 @@ define(['css!./styles/PNWidgetWidget.css'], function () {
         this._logger.debug('Widget is resizing...');
     };
 
-    // Adding/Removing/Updating items
-    PNWidgetWidget.prototype.addNode = function (desc) {
-        if (desc) {
-            // Add node to a table of nodes
-            var node = document.createElement('div'),
-                label = 'children';
+    // // Adding/Removing/Updating items
+    // PNWidgetWidget.prototype.addNode = function (desc) {
+    //     if (desc) {
+    //         // Add node to a table of nodes
+    //         var node = document.createElement('div'),
+    //             label = 'children';
 
-            if (desc.childrenIds.length === 1) {
-                label = 'child';
+    //         if (desc.childrenIds.length === 1) {
+    //             label = 'child';
+    //         }
+
+    //         this.nodes[desc.id] = desc;
+    //         node.innerHTML = 'Adding node "' + desc.name + '" (click to view). It has ' +
+    //             desc.childrenIds.length + ' ' + label + '.';
+
+    //         this._el.append(node);
+    //         node.onclick = this.onNodeClick.bind(this, desc.id);
+    //     }
+    // };
+
+    // PNWidgetWidget.prototype.removeNode = function (gmeId) {
+    //     var desc = this.nodes[gmeId];
+    //     this._el.append('<div>Removing node "' + desc.name + '"</div>');
+    //     delete this.nodes[gmeId];
+    // };
+
+    // PNWidgetWidget.prototype.updateNode = function (desc) {
+    //     if (desc) {
+    //         this._logger.debug('Updating node:', desc);
+    //         this._el.append('<div>Updating node "' + desc.name + '"</div>');
+    //     }
+    // };
+
+    // State Machine manipulating functions called from the controller
+    PNWidgetWidget.prototype.initPetriNet = function (machineDescriptor) {
+        const self = this;
+        console.log(machineDescriptor);
+
+        self._webgmePN = machineDescriptor;
+        self._webgmePN.current = self._webgmePN.init;
+        self._jointPN.clear();
+        const pn = self._webgmePN;
+        pn.id2node = {}; // this dictionary will connect the on-screen id to the state id
+        // first add the states
+        // instead of states this will be places and transitions for miniproject
+        //      also have arcs for connections
+        // go through all 3 lists 
+        // include number of markings in this forEach loop 
+            // marking = list of places with the number of tokens on each place
+        
+        Object.keys(pn.nodes).forEach(nodeId => {
+            let vertex = null;
+            if (pn.init === nodeId) {
+                vertex = new joint.shapes.standard.Circle({ //creating a shape 
+                    position: pn.nodes[nodeId].position,
+                    size: { width: 20, height: 20 },
+                    attrs: {
+                        body: {
+                            fill: '#333333',
+                            cursor: 'pointer'
+                        }
+                    }
+                });
+            } else if (pn.nodes[nodeId].isEnd) {
+                vertex = new joint.shapes.standard.Circle({
+                    position: pn.nodes[nodeId].position,
+                    size: { width: 30, height: 30 },
+                    attrs: {
+                        body: {
+                            fill: '#999999',
+                            cursor: 'pointer'
+                        }
+                    }
+                });
+            } else {
+                vertex = new joint.shapes.standard.Circle({
+                    position: pn.nodes[nodeId].position,
+                    size: { width: 60, height: 60 },
+                    attrs: {
+                        label : {
+                            text: pn.states[nodeId].name,
+                            //event: 'element:label:pointerdown',
+                            fontWeight: 'bold',
+                            //cursor: 'text',
+                            //style: {
+                            //    userSelect: 'text'
+                            //}
+                        },
+                        body: {
+                            strokeWidth: 3,
+                            cursor: 'pointer'
+                        }
+                    }
+                });
             }
+            vertex.addTo(self._jointPN); //add vertex to graph
+            pn.nodes[nodeId].joint = vertex; 
+            pn.id2node[vertex.id] = nodeId;
+        });
+        //will do the same thing with transitions, but using different shape (square not circle)
 
-            this.nodes[desc.id] = desc;
-            node.innerHTML = 'Adding node "' + desc.name + '" (click to view). It has ' +
-                desc.childrenIds.length + ' ' + label + '.';
+        // then create the links
+        //connecting two shapes 
+        Object.keys(pn.nodes).forEach(nodeId => {
+            const node = pn.nodes[nodeId];
+            Object.keys(node.next).forEach(event => {
+                node.jointNext = node.jointNext || {};
+                const link = new joint.shapes.standard.Link({
+                    //will only need source and target (not attributes and labels)
+                    source: {id: node.joint.id},
+                    target: {id: pn.nodes[node.next[event]].joint.id},
+                    attrs: {
+                        line: {
+                            strokeWidth: 2
+                        },
+                        wrapper: {
+                            cursor: 'default'
+                        }
+                    },
+                    labels: [{
+                        position: {
+                            distance: 0.5,
+                            offset: 0,
+                            args: {
+                                keepGradient: true,
+                                ensureLegibility: true
+                            }
+                        },
+                        attrs: {
+                            text: {
+                                text: event,
+                                fontWeight: 'bold'
+                            }
+                        }
+                    }]
+                });
+                link.addTo(self._jointPN);
+                state.jointNext[event] = link;
+            })
+        });
 
-            this._el.append(node);
-            node.onclick = this.onNodeClick.bind(this, desc.id);
-        }
+        //now refresh the visualization
+        self._jointPaper.updateViews();
+        self._decoratePetriNet();
     };
 
-    PNWidgetWidget.prototype.removeNode = function (gmeId) {
-        var desc = this.nodes[gmeId];
-        this._el.append('<div>Removing node "' + desc.name + '"</div>');
-        delete this.nodes[gmeId];
+    PNWidgetWidget.prototype.destroyPetriNet = function () {
+
     };
 
-    PNWidgetWidget.prototype.updateNode = function (desc) {
-        if (desc) {
-            this._logger.debug('Updating node:', desc);
-            this._el.append('<div>Updating node "' + desc.name + '"</div>');
-        }
+    PNWidgetWidget.prototype.fireEvent = function (event) { //this is where you change the marking
+        const self = this;
+        const current = self._webgmePN.states[self._webgmePN.current];
+        const link = current.jointNext[event];
+        const linkView = link.findView(self._jointPaper);
+        //animation
+        linkView.sendToken(joint.V('circle', { r: 10, fill: 'black' }), {duration:500}, function() {
+           self._webgmePN.current = current.next[event];
+           self._decoratePetriNet();
+        });
+
+
+    };
+    // will have similar function to ^^ to change the marking
+        //pass in the ID of the transition to be fired, check all the incoming places, subtract one token, and add one token to all the outgoing places
+        
+    // after each fire event, when decorate machine for ex is called, all that's needed to do is change the color of the transition that is firing
+    // calling deocrateMachine in each fireEvent
+    // in the handling of the click, you want to decide whether you can actually make that transition
+
+    //also need to use resetMachine function 
+        // want to store the initial marking and reset the machine this way
+
+    // create descriptor for how you want this to work
+
+    // after fire event is called and the objects are initialized, need to check which nodes are fireable
+
+    PNWidgetWidget.prototype.resetPetriNet = function () {
+        this._webgmePN.current = this._webgmePN.init;
+        this._decoratePetriNet();
+    };
+
+    PNWidgetWidget.prototype._decoratePetriNet = function() {
+        const pn = this._webgmePN;
+        Object.keys(pn.nodes).forEach(nodeId => {
+            pn.nodes[nodeId].joint.attr('body/stroke', '#333333');
+        });
+        pn.nodes[pn.current].joint.attr('body/stroke', 'blue');
+        pn.setFireableEvents(Object.keys(pn.nodes[pn.current].next));
+    };
+
+    PNWidgetWidget.prototype._setCurrentState = function(newCurrent) {
+        this._webgmePN.current = newCurrent;
+        this._decoratePetriNet();
     };
 
     /* * * * * * * * Visualizer event handlers * * * * * * * */
 
-    PNWidgetWidget.prototype.onNodeClick = function (/*id*/) {
-        // This currently changes the active node to the given id and
-        // this is overridden in the controller.
-    };
+    // PNWidgetWidget.prototype.onNodeClick = function (/*id*/) {
+    //     // This currently changes the active node to the given id and
+    //     // this is overridden in the controller.
+    // };
 
-    PNWidgetWidget.prototype.onBackgroundDblClick = function () {
-        this._el.append('<div>Background was double-clicked!!</div>');
-    };
+    // PNWidgetWidget.prototype.onBackgroundDblClick = function () {
+    //     this._el.append('<div>Background was double-clicked!!</div>');
+    // };
 
     /* * * * * * * * Visualizer life cycle callbacks * * * * * * * */
     PNWidgetWidget.prototype.destroy = function () {
