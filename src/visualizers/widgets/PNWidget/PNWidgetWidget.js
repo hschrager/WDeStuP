@@ -44,24 +44,24 @@ define(['css!./styles/PNWidgetWidget.css'], function () {
     };
 
     // // Adding/Removing/Updating items
-    // PNWidgetWidget.prototype.addNode = function (desc) {
-    //     if (desc) {
-    //         // Add node to a table of nodes
-    //         var node = document.createElement('div'),
-    //             label = 'children';
+    PNWidgetWidget.prototype.addNode = function (desc) {
+        if (desc) {
+            // Add node to a table of nodes
+            var node = document.createElement('div'),
+                label = 'children';
 
-    //         if (desc.childrenIds.length === 1) {
-    //             label = 'child';
-    //         }
+            if (desc.childrenIds.length === 1) {
+                label = 'child';
+            }
 
-    //         this.nodes[desc.id] = desc;
-    //         node.innerHTML = 'Adding node "' + desc.name + '" (click to view). It has ' +
-    //             desc.childrenIds.length + ' ' + label + '.';
+            this.nodes[desc.id] = desc;
+            node.innerHTML = 'Adding node "' + desc.name + '" (click to view). It has ' +
+                desc.childrenIds.length + ' ' + label + '.';
 
-    //         this._el.append(node);
-    //         node.onclick = this.onNodeClick.bind(this, desc.id);
-    //     }
-    // };
+            this._el.append(node);
+            node.onclick = this.onNodeClick.bind(this, desc.id);
+        }
+    };
 
     // PNWidgetWidget.prototype.removeNode = function (gmeId) {
     //     var desc = this.nodes[gmeId];
