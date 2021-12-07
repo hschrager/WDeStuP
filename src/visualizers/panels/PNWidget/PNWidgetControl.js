@@ -204,7 +204,7 @@ define([
         });
         pn.setFireableEvents = this.setFireableEvents;
 
-        self._widget.initMachine(pn);
+        self._widget.initPetriNet(pn);
     };
 
     PNWidgetControl.prototype.clearPN = function () {
