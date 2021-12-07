@@ -1,12 +1,6 @@
 {
   "components": {
     "seeds": {
-      "RailroadNetwork": {
-        "src": "src/seeds/RailroadNetwork"
-      },
-      "PetriNets": {
-        "src": "src/seeds/PetriNets"
-      },
       "PetriNets2": {
         "src": "src/seeds/PetriNets2"
       }
@@ -15,13 +9,25 @@
       "MyPluginName": {
         "src": "src/plugins/MyPluginName",
         "test": "test/plugins/MyPluginName"
+      },
+      "ReachAllPlaces": {
+        "src": "src/plugins/ReachAllPlaces",
+        "test": "test/plugins/ReachAllPlaces"
       }
     },
     "addons": {},
     "decorators": {},
     "layouts": {},
     "routers": {},
-    "visualizers": {}
+    "visualizers": {
+      "PNWidget": {
+        "src": "panels/PNWidget/PNWidgetPanel",
+        "title": "PNWidget",
+        "panel": "src/visualizers/panels/PNWidget",
+        "secondary": false,
+        "widget": "src/visualizers/widgets/PNWidget"
+      }
+    }
   },
   "dependencies": {
     "seeds": {},

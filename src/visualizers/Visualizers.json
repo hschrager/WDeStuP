@@ -1,8 +1,14 @@
 [
-    {
-      "id": "SimSM",
-      "title": "SimSM",
-      "panel": "panels/SimSM/SimSMPanel",
-      "DEBUG_ONLY": false
-    }
-  ]
+  {
+    "id": "PetriNet",
+    "title": "PetriNet",
+    "panel": "panels/PetriNet/PetriNetPanel",
+    "DEBUG_ONLY": false
+  },
+  {
+    "id": "PNWidget",
+    "title": "PNWidget",
+    "panel": "panels/PNWidget/PNWidgetPanel",
+    "DEBUG_ONLY": false
+  }
+]
