@@ -63,18 +63,18 @@ define(['css!./styles/PNWidgetWidget.css'], function () {
         }
     };
 
-    // PNWidgetWidget.prototype.removeNode = function (gmeId) {
-    //     var desc = this.nodes[gmeId];
-    //     this._el.append('<div>Removing node "' + desc.name + '"</div>');
-    //     delete this.nodes[gmeId];
-    // };
+    PNWidgetWidget.prototype.removeNode = function (gmeId) {
+        var desc = this.nodes[gmeId];
+        this._el.append('<div>Removing node "' + desc.name + '"</div>');
+        delete this.nodes[gmeId];
+    };
 
-    // PNWidgetWidget.prototype.updateNode = function (desc) {
-    //     if (desc) {
-    //         this._logger.debug('Updating node:', desc);
-    //         this._el.append('<div>Updating node "' + desc.name + '"</div>');
-    //     }
-    // };
+    PNWidgetWidget.prototype.updateNode = function (desc) {
+        if (desc) {
+            this._logger.debug('Updating node:', desc);
+            this._el.append('<div>Updating node "' + desc.name + '"</div>');
+        }
+    };
 
     // State Machine manipulating functions called from the controller
     PNWidgetWidget.prototype.initPetriNet = function (machineDescriptor) {
