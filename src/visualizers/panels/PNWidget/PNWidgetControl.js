@@ -25,9 +25,14 @@ define([
         this._widget = options.widget;
 
         this._currentNodeId = null;
-        this._currentNodeParentId = undefined;
+        this._networkRootLoaded = false;
+
+        this._fireableEvents = null;
 
         this._initWidgetEventHandlers();
+        
+        // we need to fix the context of this function as it will be called from the widget directly
+        this.setFireableEvents = this.setFireableEvents.bind(this);
 
         this._logger.debug('ctor finished');
     }
@@ -44,33 +49,20 @@ define([
     // defines the parts of the project that the visualizer is interested in
     // (this allows the browser to then only load those relevant parts).
     PNWidgetControl.prototype.selectedObjectChanged = function (nodeId) {
-        var desc = this._getObjectDescriptor(nodeId),
-            self = this;
-
-        self._logger.debug('activeObject nodeId \'' + nodeId + '\'');
+        var self = this;
 
         // Remove current territory patterns
         if (self._currentNodeId) {
             self._client.removeUI(self._territoryId);
+            self._networkRootLoaded = false;
         }
 
         self._currentNodeId = nodeId;
-        self._currentNodeParentId = undefined;
 
         if (typeof self._currentNodeId === 'string') {
             // Put new node's info into territory rules
             self._selfPatterns = {};
-            self._selfPatterns[nodeId] = {children: 0};  // Territory "rule"
-
-            self._widget.setTitle(desc.name.toUpperCase());
-
-            if (typeof desc.parentId === 'string') {
-                self.$btnModelHierarchyUp.show();
-            } else {
-                self.$btnModelHierarchyUp.hide();
-            }
-
-            self._currentNodeParentId = desc.parentId;
+            self._selfPatterns[nodeId] = {children: 1};  // Territory "rule"
 
             self._territoryId = self._client.addUI(self, function (events) {
                 self._eventCallback(events);
@@ -79,68 +71,32 @@ define([
             // Update the territory
             self._client.updateTerritory(self._territoryId, self._selfPatterns);
 
-            self._selfPatterns[nodeId] = {children: 1};
-            self._client.updateTerritory(self._territoryId, self._selfPatterns);
         }
     };
 
-    // This next function retrieves the relevant node information for the widget
-    PNWidgetControl.prototype._getObjectDescriptor = function (nodeId) {
-        var node = this._client.getNode(nodeId),
-            objDescriptor;
-        if (node) {
-            objDescriptor = {
-                id: node.getId(),
-                name: node.getAttribute(nodePropertyNames.Attributes.name),
-                childrenIds: node.getChildrenIds(),
-                parentId: node.getParentId(),
-                isConnection: GMEConcepts.isConnection(nodeId)
-            };
-        }
-
-        return objDescriptor;
-    };
 
     /* * * * * * * * Node Event Handling * * * * * * * */
     PNWidgetControl.prototype._eventCallback = function (events) {
-        var i = events ? events.length : 0,
-            event;
+        const self = this;
+         console.log(events);
+         events.forEach(event => {
+             if (event.eid && 
+                 event.eid === self._currentNodeId ) {
+                     if (event.etype == 'load' || event.etype == 'update') {
+                         self._networkRootLoaded = true;
+                     } else {
+                         self.clearPN();
+                         return;
+                     }
+                 }
 
-        this._logger.debug('_eventCallback \'' + i + '\' items');
+         });
 
-        while (i--) {
-            event = events[i];
-            switch (event.etype) {
 
-            case CONSTANTS.TERRITORY_EVENT_LOAD:
-                this._onLoad(event.eid);
-                break;
-            case CONSTANTS.TERRITORY_EVENT_UPDATE:
-                this._onUpdate(event.eid);
-                break;
-            case CONSTANTS.TERRITORY_EVENT_UNLOAD:
-                this._onUnload(event.eid);
-                break;
-            default:
-                break;
-            }
+         if (events.length && events[0].etype === 'complete' && self._networkRootLoaded) {
+            // complete means we got all requested data and we do not have to wait for additional load cycles
+            self._initSM();
         }
-
-        this._logger.debug('_eventCallback \'' + events.length + '\' items - DONE');
-    };
-
-    PNWidgetControl.prototype._onLoad = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-        this._widget.addNode(description);
-    };
-
-    PNWidgetControl.prototype._onUpdate = function (gmeId) {
-        var description = this._getObjectDescriptor(gmeId);
-        this._widget.updateNode(description);
-    };
-
-    PNWidgetControl.prototype._onUnload = function (gmeId) {
-        this._widget.removeNode(gmeId);
     };
 
     PNWidgetControl.prototype._stateActiveObjectChanged = function (model, activeObjectId) {
@@ -271,6 +227,14 @@ define([
             for (var i = this._toolbarItems.length; i--;) {
                 this._toolbarItems[i].show();
             }
+            if (this._fireableEvents === null) {
+                this.$btnEventSelector.hide();
+                this.$btnSingleEvent.hide();
+            } else if (this._fireableEvents.length == 1) {
+                this.$btnEventSelector.hide();
+            } else {
+                this.$btnSingleEvent.hide();
+            }
         } else {
             this._initializeToolbar();
         }
@@ -303,26 +267,52 @@ define([
         this._toolbarItems.push(toolBar.addSeparator());
 
         /************** Go to hierarchical parent button ****************/
-        this.$btnModelHierarchyUp = toolBar.addButton({
-            title: 'Go to parent',
-            icon: 'glyphicon glyphicon-circle-arrow-up',
+        this.$btnReachAllPlaces = toolBar.addButton({
+            title: 'Check petrinet reachability properties',
+            icon: 'glyphicon glyphicon-question-sign',
             clickFn: function (/*data*/) {
-                WebGMEGlobal.State.registerActiveObject(self._currentNodeParentId);
+                const context = self._client.getCurrentPluginContext('ReachAllPlaces',self._currentNodeId, []);
+                 // !!! it is important to fill out or pass an empty object as the plugin config otherwise we might get errors...
+                 context.pluginConfig = {};
+                 self._client.runServerPlugin(
+                     'ReachAllPlaces', 
+                     context, 
+                     function(err, result){
+                         // here comes any additional processing of results or potential errors.
+                         console.log('plugin err:', err);
+                         console.log('plugin result:', result);
+                 });
             }
         });
-        this._toolbarItems.push(this.$btnModelHierarchyUp);
-        this.$btnModelHierarchyUp.hide();
+        this._toolbarItems.push(this.$btnReachAllPlaces);
 
-        /************** Checkbox example *******************/
-
-        this.$cbShowConnection = toolBar.addCheckBox({
-            title: 'toggle checkbox',
-            icon: 'gme icon-gme_diagonal-arrow',
-            checkChangedFn: function (data, checked) {
-                self._logger.debug('Checkbox has been clicked!');
+        this.$btnResetMachine = toolBar.addButton({
+            title: 'Reset simulator',
+            icon: 'glyphicon glyphicon-fast-backward',
+            clickFn: function (/*data*/) {
+                self._widget.resetMachine();
             }
         });
-        this._toolbarItems.push(this.$cbShowConnection);
+        this._toolbarItems.push(this.$btnResetMachine);
+
+        // when there are multiple events to choose from we offer a selector
+        this.$btnEventSelector = toolBar.addDropDownButton({
+            text: 'event'
+        });
+        this._toolbarItems.push(this.$btnEventSelector);
+        this.$btnEventSelector.hide();
+
+        // if there is only one event we just show a play button
+        this.$btnSingleEvent = toolBar.addButton({
+            title: 'Fire event',
+            icon: 'glyphicon glyphicon-play',
+            clickFn: function (/*data*/) {
+                self._widget.fireEvent(self._fireableEvents[0]);
+            }
+        });
+        this._toolbarItems.push(this.$btnSingleEvent);
+
+        /************** Dropdown for event progression *******************/
 
         this._toolbarInitialized = true;
     };
