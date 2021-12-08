@@ -123,7 +123,7 @@ define([
         //we need our nodes (names, position, type), need the set of next state (with event names)
         const pnNode = self._client.getNode(self._currentNodeId);
         const elementIds = pnNode.getChildrenIds();
-        const pn = {init: null, places:{}, transitions:{}};
+        const pn = {init: null, nodes:{}, transitions:{}};
         elementIds.forEach(elementId => {
             console.log(elementId);
             const node = self._client.getNode(elementId);
@@ -289,14 +289,14 @@ define([
         });
         this._toolbarItems.push(this.$btnReachAllPlaces);
 
-        this.$btnResetMachine = toolBar.addButton({
+        this.$btnResetPetriNet = toolBar.addButton({
             title: 'Reset simulator',
             icon: 'glyphicon glyphicon-fast-backward',
             clickFn: function (/*data*/) {
-                self._widget.resetMachine();
+                self._widget.resetPetriNet();
             }
         });
-        this._toolbarItems.push(this.$btnResetMachine);
+        this._toolbarItems.push(this.$btnResetPetriNet);
 
         // when there are multiple events to choose from we offer a selector
         this.$btnEventSelector = toolBar.addDropDownButton({
