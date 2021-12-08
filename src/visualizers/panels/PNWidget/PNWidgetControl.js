@@ -95,7 +95,7 @@ define([
 
          if (events.length && events[0].etype === 'complete' && self._networkRootLoaded) {
             // complete means we got all requested data and we do not have to wait for additional load cycles
-            self._initSM();
+            self._initPetriNet();
         }
     };
 
@@ -111,6 +111,7 @@ define([
     // this is where the petri net structure is built
     // traverse network and build up data structure being used in the widget 
     PNWidgetControl.prototype._initPetriNet = function () { 
+        console.log("INITIALIZE PETRI NET");
         const self = this;
         //just for the ease of use, lets create a META dictionary
         const rawMETA = self._client.getAllMetaNodes();
@@ -124,6 +125,7 @@ define([
         const elementIds = pnNode.getChildrenIds();
         const pn = {init: null, places:{}, transitions:{}};
         elementIds.forEach(elementId => {
+            console.log(elementId);
             const node = self._client.getNode(elementId);
             // the simple way of checking type
             if (node.isTypeOf(META['Place'])) {
@@ -156,6 +158,7 @@ define([
                         transition.next[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
                     }
                 });
+                pn.nodes[elementId] = transition;
             }
         });
         pn.setFireableEvents = this.setFireableEvents;

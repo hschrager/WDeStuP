@@ -77,6 +77,33 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         
         Object.keys(pn.nodes).forEach(nodeId => {
             let vertex = null;
+            // confused here on how to differentiate between place and transition? 
+            // if place
+                vertex = new joint.shapes.standard.Circle({
+                    position: pn.nodes[nodeId].position,
+                    size: { width: 30, height: 30 },
+                    attrs: {
+                        body: {
+                            fill: '#000000',
+                            strokeWidth: 3,
+                            cursor: 'pointer'
+                        },
+                        marking: pn.nodes[nodeId].getAttribute('marking')
+                    }
+                });
+            // if transition
+                vertex = new joint.shapes.standard.Rectangle({
+                    position: pn.nodes[nodeId].position,
+                    size: { width: 20, height: 40 },
+                    attrs: {
+                        body: {
+                            fill: '#000000',
+                            strokeWidth: 3,
+                            cursor: 'pointer'
+                        }
+                    }
+                });
+                
             if (pn.init === nodeId) {
                 vertex = new joint.shapes.standard.Circle({ //creating a shape 
                     position: pn.nodes[nodeId].position,
