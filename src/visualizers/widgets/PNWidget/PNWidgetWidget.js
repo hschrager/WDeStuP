@@ -44,9 +44,10 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         // add event calls to elements
         this._jointPaper.on('element:pointerdblclick', function(elementView) {
             const currentElement = elementView.model;
-            // console.log(currentElement);
+            console.log("CURRENT ELEMENT");
+            console.log(currentElement);
             if (self._webgmePN) {
-                // console.log(self._webgmeSM.id2state[currentElement.id]);
+                // console.log(self._webgmeSM.id2node[currentElement.id]);
                 self._setCurrentState(self._webgmePN.id2node[currentElement.id]);
             }
         });
@@ -59,11 +60,11 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
 
 
     // State Machine manipulating functions called from the controller
-    PNWidgetWidget.prototype.initPetriNet = function (machineDescriptor) {
+    PNWidgetWidget.prototype.initPetriNet = function (pnDescriptor) {
         const self = this;
-        console.log(machineDescriptor);
+        console.log(pnDescriptor);
 
-        self._webgmePN = machineDescriptor;
+        self._webgmePN = pnDescriptor;
         self._webgmePN.current = self._webgmePN.init;
         self._jointPN.clear();
         
@@ -82,7 +83,7 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
             if (pn.nodes[nodeId].isPlace){
                 vertex = new joint.shapes.standard.Circle({
                     position: pn.nodes[nodeId].position,
-                    size: { width: 30, height: 30 },
+                    size: { width: 35, height: 35 },
                     attrs: {
                         body: {
                             fill: '#FFFFFF',
@@ -92,35 +93,33 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                         marking:  pn.nodes[nodeId].marking
                     }
                 });
-                // console.log("MARKINGS:");
-                // console.log(vertex.attrs);
             } else {
                 vertex = new joint.shapes.standard.Rectangle({
                     position: pn.nodes[nodeId].position,
-                    size: { width: 20, height: 40 },
+                    size: { width: 22, height: 44 },
                     attrs: {
                         body: {
-                            fill: '#000000',
+                            fill: '#FFFFFF',
                             strokeWidth: 3,
                             cursor: 'pointer'
                         },
                         marking:  pn.nodes[nodeId].marking
                     }
                 });
-                // console.log("MARKINGS:");
-                // console.log(vertex.attrs.marking);
             }
             vertex.addTo(self._jointPN); //add vertex to graph
             pn.nodes[nodeId].joint = vertex; 
             pn.id2node[vertex.id] = nodeId;
         });
-        //will do the same thing with transitions, but using different shape (square not circle)
 
         // then create the links
         //connecting two shapes 
         Object.keys(pn.nodes).forEach(nodeId => {
             const node = pn.nodes[nodeId];
+            console.log('node');
+            console.log(node);
             Object.keys(node.next).forEach(event => {
+                console.log("LINKING");
                 node.jointNext = node.jointNext || {};
                 const link = new joint.shapes.standard.Link({
                     //will only need source and target (not attributes and labels)
@@ -151,8 +150,9 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                         }
                     }]
                 });
+                console.log("adding link");
                 link.addTo(self._jointPN);
-                state.jointNext[event] = link;
+                node.jointNext[event] = link;
             })
         });
 
@@ -167,7 +167,7 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
 
     PNWidgetWidget.prototype.fireEvent = function (event) { //this is where you change the marking
         const self = this;
-        const current = self._webgmePN.states[self._webgmePN.current];
+        const current = self._webgmePN.nodes[self._webgmePN.current];
         const link = current.jointNext[event];
         const linkView = link.findView(self._jointPaper);
         //animation

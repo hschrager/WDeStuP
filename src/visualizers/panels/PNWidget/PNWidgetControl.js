@@ -123,46 +123,45 @@ define([
         //we need our nodes (names, position, type), need the set of next state (with event names)
         const pnNode = self._client.getNode(self._currentNodeId);
         const elementIds = pnNode.getChildrenIds();
-        const pn = {init: null, nodes:{}, transitions:{}};
+        const pn = {init: null, nodes:{}, arcs: {}};
         elementIds.forEach(elementId => {
             console.log(elementId);
             const node = self._client.getNode(elementId);
             // the simple way of checking type
             if (node.isTypeOf(META['Place'])) {
                 //right now we only interested in places...
-                const place = {name: node.getAttribute('name'), next:{}, marking: node.getAttribute('marking'), isPlace: true};
+                const place = {name: node.getAttribute('name'), outgoing:{}, position: node.getRegistry('position'), marking: node.getAttribute('marking'), isPlace: true};
                 // one way to check meta-type in the client context - though it does not check for generalization types like State
-                if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
-                    pn.init = elementId;
-                }
-
+                // if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
+                //     pn.init = elementId;
+                // }
                 // this is in no way optimal, but shows clearly what we are looking for when we collect the data
                 elementIds.forEach(nextId => {
                     const nextNode = self._client.getNode(nextId);
-                    if(nextNode.isTypeOf(META['Transition']) && nextNode.getPointerId('src') === elementId) {
-                        place.next[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    if(nextNode.isTypeOf(META['Transition'])) {
+                        place.outgoing[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
                     }
                 });
                 pn.nodes[elementId] = place;
             } else if (node.isTypeOf(META['Transition'])) {
                 //right now we only interested in transitions...
-                const transition = {name: node.getAttribute('name'), next:{}, marking: node.getAttribute('marking'), isPlace: false};
+                const transition = {name: node.getAttribute('name'), outgoing:{}, position: node.getRegistry('position'), marking: node.getAttribute('marking'), isPlace: false};
                 // one way to check meta-type in the client context - though it does not check for generalization types like State
-                if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
-                    pn.init = elementId;
-                }
+                // if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
+                //     pn.init = elementId;
+                // }
                 // this is in no way optimal, but shows clearly what we are looking for when we collect the data
                 elementIds.forEach(nextId => {
                     const nextNode = self._client.getNode(nextId);
-                    if(nextNode.isTypeOf(META['Place']) && nextNode.getPointerId('src') === elementId) {
-                        transition.next[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    if(nextNode.isTypeOf(META['Place'])) {
+                        transition.outgoing[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
                     }
                 });
                 pn.nodes[elementId] = transition;
             }
         });
         pn.setFireableEvents = this.setFireableEvents;
-
+        pn.init = pn.nodes;
         self._widget.initPetriNet(pn);
     };
 
