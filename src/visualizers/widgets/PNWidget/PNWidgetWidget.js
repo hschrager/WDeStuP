@@ -21,6 +21,7 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
     }
 
     PNWidgetWidget.prototype._initialize = function () {
+        console.log("JOINT");
         console.log(joint);
 
         var width = this._el.width(),
@@ -78,21 +79,22 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         Object.keys(pn.nodes).forEach(nodeId => {
             let vertex = null;
             // confused here on how to differentiate between place and transition? 
-            // if place
-            let curr = self._client.getNode(nodeId)
+            if (pn.nodes[nodeId].isPlace){
                 vertex = new joint.shapes.standard.Circle({
                     position: pn.nodes[nodeId].position,
                     size: { width: 30, height: 30 },
                     attrs: {
                         body: {
-                            fill: '#000000',
+                            fill: '#FFFFFF',
                             strokeWidth: 3,
                             cursor: 'pointer'
                         },
-                        marking: curr.getAttribute('marking')
+                        marking:  pn.nodes[nodeId].marking
                     }
                 });
-            // if transition
+                // console.log("MARKINGS:");
+                // console.log(vertex.attrs);
+            } else {
                 vertex = new joint.shapes.standard.Rectangle({
                     position: pn.nodes[nodeId].position,
                     size: { width: 20, height: 40 },
@@ -101,52 +103,12 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                             fill: '#000000',
                             strokeWidth: 3,
                             cursor: 'pointer'
-                        }
-                    }
-                });
-                
-            if (pn.init === nodeId) {
-                vertex = new joint.shapes.standard.Circle({ //creating a shape 
-                    position: pn.nodes[nodeId].position,
-                    size: { width: 20, height: 20 },
-                    attrs: {
-                        body: {
-                            fill: '#333333',
-                            cursor: 'pointer'
-                        }
-                    }
-                });
-            } else if (pn.nodes[nodeId].isEnd) {
-                vertex = new joint.shapes.standard.Circle({
-                    position: pn.nodes[nodeId].position,
-                    size: { width: 30, height: 30 },
-                    attrs: {
-                        body: {
-                            fill: '#999999',
-                            cursor: 'pointer'
-                        }
-                    }
-                });
-            } else {
-                vertex = new joint.shapes.standard.Circle({
-                    position: pn.nodes[nodeId].position,
-                    size: { width: 60, height: 60 },
-                    attrs: {
-                        label : {
-                            text: pn.states[nodeId].name,
-                            //event: 'element:label:pointerdown',
-                            fontWeight: 'bold',
-                            //cursor: 'text',
-                            //style: {
-                            //    userSelect: 'text'
-                            //}
                         },
-                        body: {
-                            strokeWidth: 3,
-                            cursor: 'pointer'
-                        }
+                        marking:  pn.nodes[nodeId].marking
                     }
                 });
+                // console.log("MARKINGS:");
+                // console.log(vertex.attrs.marking);
             }
             vertex.addTo(self._jointPN); //add vertex to graph
             pn.nodes[nodeId].joint = vertex; 
@@ -213,8 +175,6 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
            self._webgmePN.current = current.next[event];
            self._decoratePetriNet();
         });
-
-
     };
     // will have similar function to ^^ to change the marking
         //pass in the ID of the transition to be fired, check all the incoming places, subtract one token, and add one token to all the outgoing places

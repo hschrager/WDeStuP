@@ -130,7 +130,7 @@ define([
             // the simple way of checking type
             if (node.isTypeOf(META['Place'])) {
                 //right now we only interested in places...
-                const place = {name: node.getAttribute('name'), next:{}, markings: node.getAttribute('marking')};
+                const place = {name: node.getAttribute('name'), next:{}, marking: node.getAttribute('marking'), isPlace: true};
                 // one way to check meta-type in the client context - though it does not check for generalization types like State
                 if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
                     pn.init = elementId;
@@ -146,7 +146,7 @@ define([
                 pn.nodes[elementId] = place;
             } else if (node.isTypeOf(META['Transition'])) {
                 //right now we only interested in transitions...
-                const transition = {name: node.getAttribute('name'), next:{}};
+                const transition = {name: node.getAttribute('name'), next:{}, marking: node.getAttribute('marking'), isPlace: false};
                 // one way to check meta-type in the client context - though it does not check for generalization types like State
                 if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
                     pn.init = elementId;
