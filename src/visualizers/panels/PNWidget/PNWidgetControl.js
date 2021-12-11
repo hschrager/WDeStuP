@@ -111,7 +111,6 @@ define([
     // this is where the petri net structure is built
     // traverse network and build up data structure being used in the widget 
     PNWidgetControl.prototype._initPetriNet = function () { 
-        console.log("INITIALIZE PETRI NET");
         const self = this;
         //just for the ease of use, lets create a META dictionary
         const rawMETA = self._client.getAllMetaNodes();
@@ -123,45 +122,35 @@ define([
         //we need our nodes (names, position, type), need the set of next state (with event names)
         const pnNode = self._client.getNode(self._currentNodeId);
         const elementIds = pnNode.getChildrenIds();
-        const pn = {init: null, nodes:{}, arcs: {}};
+        const pn = {init_markings: {}, nodes:{}};
         elementIds.forEach(elementId => {
-            console.log(elementId);
             const node = self._client.getNode(elementId);
             // the simple way of checking type
             if (node.isTypeOf(META['Place'])) {
-                //right now we only interested in places...
-                const place = {name: node.getAttribute('name'), outgoing:{}, position: node.getRegistry('position'), marking: node.getAttribute('marking'), isPlace: true};
-                // one way to check meta-type in the client context - though it does not check for generalization types like State
-                // if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
-                //     pn.init = elementId;
-                // }
-                // this is in no way optimal, but shows clearly what we are looking for when we collect the data
+                // get all place attributes 
+                const place = {name: node.getAttribute('name'), outgoing:[], position: node.getRegistry('position'), numMarkings: node.getAttribute('marking'), isPlace: true};
                 elementIds.forEach(nextId => {
                     const nextNode = self._client.getNode(nextId);
-                    if(nextNode.isTypeOf(META['Transition'])) {
-                        place.outgoing[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    if(nextNode.isTypeOf(META['Arc']) && nextNode.getPointerId('src') === elementId) {
+                        place.outgoing.push(nextNode.getPointerId('dst'));
                     }
+                    
                 });
                 pn.nodes[elementId] = place;
+                pn.init_markings[elementId] = place.numMarkings;
             } else if (node.isTypeOf(META['Transition'])) {
-                //right now we only interested in transitions...
-                const transition = {name: node.getAttribute('name'), outgoing:{}, position: node.getRegistry('position'), marking: node.getAttribute('marking'), isPlace: false};
-                // one way to check meta-type in the client context - though it does not check for generalization types like State
-                // if ('Init' === self._client.getNode(node.getMetaTypeId()).getAttribute('name')) {
-                //     pn.init = elementId;
-                // }
-                // this is in no way optimal, but shows clearly what we are looking for when we collect the data
+                // get all transition attributes
+                const transition = {name: node.getAttribute('name'), outgoing:[], position: node.getRegistry('position'), isPlace: false};
                 elementIds.forEach(nextId => {
                     const nextNode = self._client.getNode(nextId);
-                    if(nextNode.isTypeOf(META['Place'])) {
-                        transition.outgoing[nextNode.getAttribute('event')] = nextNode.getPointerId('dst');
+                    if(nextNode.isTypeOf(META['Arc']) && nextNode.getPointerId('src') === elementId) {
+                        transition.outgoing.push(nextNode.getPointerId('dst'));
                     }
                 });
                 pn.nodes[elementId] = transition;
             }
         });
         pn.setFireableEvents = this.setFireableEvents;
-        pn.init = pn.nodes;
         self._widget.initPetriNet(pn);
     };
 
@@ -270,7 +259,7 @@ define([
 
         /************** Go to hierarchical parent button ****************/
         this.$btnReachAllPlaces = toolBar.addButton({
-            title: 'Check petrinet reachability properties',
+            title: 'Check petrinet classification',
             icon: 'glyphicon glyphicon-question-sign',
             clickFn: function (/*data*/) {
                 const context = self._client.getCurrentPluginContext('ReachAllPlaces',self._currentNodeId, []);

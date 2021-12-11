@@ -21,9 +21,8 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
     }
 
     PNWidgetWidget.prototype._initialize = function () {
-        console.log("JOINT");
         console.log(joint);
-
+        
         var width = this._el.width(),
             height = this._el.height(),
             self = this;
@@ -44,11 +43,11 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         // add event calls to elements
         this._jointPaper.on('element:pointerdblclick', function(elementView) {
             const currentElement = elementView.model;
-            console.log("CURRENT ELEMENT");
-            console.log(currentElement);
             if (self._webgmePN) {
-                // console.log(self._webgmeSM.id2node[currentElement.id]);
                 self._setCurrentState(self._webgmePN.id2node[currentElement.id]);
+            }
+            if (!self._webgmePN.nodes[self._webgmePN.id2node[currentElement.id]].isPlace){
+                self.fireEvent(currentElement);
             }
         });
         this._webgmePN = null;
@@ -65,7 +64,7 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         console.log(pnDescriptor);
 
         self._webgmePN = pnDescriptor;
-        self._webgmePN.current = self._webgmePN.init;
+        // self._webgmePN.current = self._webgmePN.init_markings;
         self._jointPN.clear();
         
         const pn = self._webgmePN;
@@ -90,8 +89,12 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                             strokeWidth: 3,
                             cursor: 'pointer'
                         },
-                        marking:  pn.nodes[nodeId].marking
-                    }
+                        marking: pn.nodes[nodeId].numMarkings,
+                        text: {
+                            text: pn.nodes[nodeId].numMarkings,
+                            fontWeight: 'bold'
+                        }
+                    },
                 });
             } else {
                 vertex = new joint.shapes.standard.Rectangle({
@@ -103,7 +106,7 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                             strokeWidth: 3,
                             cursor: 'pointer'
                         },
-                        marking:  pn.nodes[nodeId].marking
+                        // marking:  pn.nodes[nodeId].numMarkings
                     }
                 });
             }
@@ -116,15 +119,12 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
         //connecting two shapes 
         Object.keys(pn.nodes).forEach(nodeId => {
             const node = pn.nodes[nodeId];
-            console.log('node');
-            console.log(node);
-            Object.keys(node.next).forEach(event => {
-                console.log("LINKING");
+            Object.keys(node.outgoing).forEach(event => {
                 node.jointNext = node.jointNext || {};
                 const link = new joint.shapes.standard.Link({
                     //will only need source and target (not attributes and labels)
                     source: {id: node.joint.id},
-                    target: {id: pn.nodes[node.next[event]].joint.id},
+                    target: {id: pn.nodes[node.outgoing[event]].joint.id},
                     attrs: {
                         line: {
                             strokeWidth: 2
@@ -142,15 +142,8 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
                                 ensureLegibility: true
                             }
                         },
-                        attrs: {
-                            text: {
-                                text: event,
-                                fontWeight: 'bold'
-                            }
-                        }
                     }]
                 });
-                console.log("adding link");
                 link.addTo(self._jointPN);
                 node.jointNext[event] = link;
             })
@@ -165,16 +158,48 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
 
     };
 
-    PNWidgetWidget.prototype.fireEvent = function (event) { //this is where you change the marking
+    PNWidgetWidget.prototype.fireEvent = function (event) { 
         const self = this;
-        const current = self._webgmePN.nodes[self._webgmePN.current];
-        const link = current.jointNext[event];
-        const linkView = link.findView(self._jointPaper);
-        //animation
-        linkView.sendToken(joint.V('circle', { r: 10, fill: 'black' }), {duration:500}, function() {
-           self._webgmePN.current = current.next[event];
-           self._decoratePetriNet();
+
+        const currTransition = self._webgmePN.nodes[self._webgmePN.id2node[event.id]];
+        let allIncomingPlaces = [];
+        //array to find all incoming places to the transition
+        Object.keys(self._webgmePN.nodes).forEach(nodeId => {
+            const node = self._webgmePN.nodes[nodeId];
+            if (node.outgoing.includes(self._webgmePN.id2node[event.id])){
+                allIncomingPlaces.push(node);
+            }
         });
+        //if there are no incoming places
+        if (allIncomingPlaces.length == 0){
+            console.log("no incoming places to make a transition.");
+            return;
+        }
+        let enough_tokens = true;
+        //for every incoming place
+        allIncomingPlaces.forEach(place => {
+            //check to make sure each place has a token
+            if (place.numMarkings < 1){
+                enough_tokens = false;
+                this._logger.error("cannot fire this transition");
+                return;
+            } 
+        });
+
+        if (enough_tokens){
+            allIncomingPlaces.forEach(place => {
+                //decrement token count at each incoming place
+                place.numMarkings--;
+            });
+            currTransition.outgoing.forEach(outgoing_place => {
+                //increment token count at all outgoing places
+                let outgoing_place_asnode = self._webgmePN.nodes[outgoing_place];
+                outgoing_place_asnode.numMarkings++;
+            })
+            //redecorate petri net
+            self._decoratePetriNet();    
+        }
+        
     };
     // will have similar function to ^^ to change the marking
         //pass in the ID of the transition to be fired, check all the incoming places, subtract one token, and add one token to all the outgoing places
@@ -191,17 +216,26 @@ define(['jointjs', 'css!./styles/PNWidgetWidget.css'], function (joint) {
     // after fire event is called and the objects are initialized, need to check which nodes are fireable
 
     PNWidgetWidget.prototype.resetPetriNet = function () {
-        this._webgmePN.current = this._webgmePN.init;
+        Object.keys(this._webgmePN.nodes).forEach(nodeId => {
+            const node = this._webgmePN.nodes[nodeId];
+            if (node.isPlace) {
+                node.numMarkings = this._webgmePN.init_markings[nodeId];
+            }
+        });
         this._decoratePetriNet();
     };
 
     PNWidgetWidget.prototype._decoratePetriNet = function() {
         const pn = this._webgmePN;
         Object.keys(pn.nodes).forEach(nodeId => {
-            pn.nodes[nodeId].joint.attr('body/stroke', '#333333');
+            if (pn.nodes[nodeId].isPlace){
+                pn.nodes[nodeId].joint.attr('text/text', pn.nodes[nodeId].numMarkings);
+                pn.nodes[nodeId].joint.attr('body/stroke', 'black');
+            } else {
+                pn.nodes[nodeId].joint.attr('body/stroke', 'gray');
+            }
+            
         });
-        pn.nodes[pn.current].joint.attr('body/stroke', 'blue');
-        pn.setFireableEvents(Object.keys(pn.nodes[pn.current].next));
     };
 
     PNWidgetWidget.prototype._setCurrentState = function(newCurrent) {

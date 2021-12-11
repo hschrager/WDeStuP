@@ -13,6 +13,10 @@
       "ReachAllPlaces": {
         "src": "src/plugins/ReachAllPlaces",
         "test": "test/plugins/ReachAllPlaces"
+      },
+      "Python": {
+        "src": "src/plugins/Python",
+        "test": "test/plugins/Python"
       }
     },
     "addons": {},
