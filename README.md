@@ -42,7 +42,7 @@ To create a new model and use the widget, follow the steps below.
 
 # Features
 This design studio provides a few simple features. The PNWidget visualizer lets the user fire allowed transitions, and 
-alerts the user when a transition is not fireable. 
+alerts the user when a transition is not fireable. This alert is printed to the console.
 This visualizer also has a reset feature to reset the PetriNet back to the original state/markings. This can be done by clicking the back arrows button on the top toolbar. 
 You can also view the classification of the PetriNet using the question mark button on the top toolbar. 
 This will alert you on what classifiation the PetriNet created falls into: free-choice, state machine, marked graph, and workflow net.
