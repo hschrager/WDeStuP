@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./src/plugins/ReachAllPlaces",
+        "./src/plugins/classify"
+    ]
+}

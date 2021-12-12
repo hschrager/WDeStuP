@@ -21,7 +21,7 @@
   "dependencies": {
     "jointjs": "^3.4.4",
     "webgme": "latest",
-    "webgme-bindings": "latest",
+    "webgme-bindings": "^1.2.2",
     "webgme-cli": "latest"
   }
 }

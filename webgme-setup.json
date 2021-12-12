@@ -13,6 +13,10 @@
       "ReachAllPlaces": {
         "src": "src/plugins/ReachAllPlaces",
         "test": "test/plugins/ReachAllPlaces"
+      },
+      "classify": {
+        "src": "src/plugins/classify",
+        "test": "test/plugins/classify"
       }
     },
     "addons": {},
